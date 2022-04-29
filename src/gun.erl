@@ -1096,10 +1096,16 @@ ensure_alpn_sni(Protocols0, TransOpts0, OriginHost) ->
 		({http2, _}, Acc) -> [<<"h2">>|Acc];
 		(_, Acc) -> Acc
 	end, [], Protocols0),
-	TransOpts = [
-		{alpn_advertised_protocols, Protocols},
-		{client_preferred_next_protocols, {client, Protocols, <<"http/1.1">>}}
-	|TransOpts0],
+	%% Add ALPN only if not provided by caller
+	TransOpts =
+		case lists:keymember(alpn_advertised_protocols, 1, TransOpts0) of
+			true ->
+				TransOpts0;
+			false ->
+				[{alpn_advertised_protocols, Protocols},
+				 {client_preferred_next_protocols, {client, Protocols, <<"http/1.1">>}}
+				|TransOpts0]
+		end,
 	%% SNI.
 	%%
 	%% Normally only DNS hostnames are supported for SNI. However, the ssl
